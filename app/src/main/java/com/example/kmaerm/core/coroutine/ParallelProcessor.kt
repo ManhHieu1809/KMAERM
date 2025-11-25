@@ -2,7 +2,9 @@ package com.example.kmaerm.core.coroutine
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlin.math.min
 
@@ -101,12 +103,13 @@ class ParallelProcessor {
         upload: suspend (T, (Int) -> Unit) -> R
     ): List<Result<R>> = coroutineScope {
         val semaphore = Semaphore(concurrency)
+        val scope = this
         files.mapIndexed { index, file ->
             async {
                 semaphore.withPermit {
                     runCatching {
                         upload(file) { progress ->
-                            launch { onProgress(index, progress) }
+                            scope.launch { onProgress(index, progress) }
                         }
                     }
                 }
@@ -272,7 +275,7 @@ class ParallelProcessor {
         items.chunked(chunkSize).map { chunk ->
             async {
                 semaphore.withPermit {
-                    chunk.map { item -> transform(item) }
+                    chunk.map { item -> async { transform(item) } }.awaitAll()
                 }
             }
         }.awaitAll().flatten()
@@ -317,13 +320,13 @@ class ParallelProcessor {
 
     /**
      * Parallel map with rate limiting to prevent overwhelming services.
-     * Introduces a delay between operations to control request rate.
+     * Uses a Semaphore for concurrency control and enforces minimum delay between operations.
      *
      * @param T The type of input items
      * @param R The type of output items
      * @param items List of items to process
      * @param concurrency Maximum concurrent operations (default: 5)
-     * @param delayBetweenMs Delay in milliseconds between operations (default: 100)
+     * @param delayBetweenMs Minimum delay in milliseconds between starting new operations (default: 100)
      * @param transform Suspend function to transform each item
      * @return List of transformed items wrapped in Result
      *
@@ -346,10 +349,18 @@ class ParallelProcessor {
         transform: suspend (T) -> R
     ): List<Result<R>> = coroutineScope {
         val semaphore = Semaphore(concurrency)
-        items.mapIndexed { index, item ->
+        val rateLimitMutex = Mutex()
+        var lastStart = 0L
+        
+        items.map { item ->
             async {
-                if (index > 0) {
-                    delay(delayBetweenMs)
+                rateLimitMutex.withLock {
+                    val now = System.currentTimeMillis()
+                    val elapsed = now - lastStart
+                    if (elapsed < delayBetweenMs && lastStart > 0) {
+                        delay(delayBetweenMs - elapsed)
+                    }
+                    lastStart = System.currentTimeMillis()
                 }
                 semaphore.withPermit {
                     runCatching { transform(item) }
