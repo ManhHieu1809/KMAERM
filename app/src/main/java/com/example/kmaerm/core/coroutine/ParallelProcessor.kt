@@ -72,14 +72,14 @@ class ParallelProcessor {
 
     /**
      * Upload multiple files in parallel with progress tracking.
-     * Reports progress for each file upload through a callback.
+     * Reports progress for each file upload through a suspend callback.
      *
      * @param T The type of file representation
      * @param R The type of upload result
      * @param files List of files to upload
      * @param concurrency Maximum concurrent uploads (default: 5)
-     * @param onProgress Callback for progress updates (fileIndex, progress 0-100)
-     * @param upload Suspend function to upload a single file
+     * @param onProgress Suspend callback for progress updates (fileIndex, progress 0-100)
+     * @param upload Suspend function to upload a single file with progress reporting
      * @return List of upload results wrapped in Result
      *
      * Example:
@@ -91,8 +91,10 @@ class ParallelProcessor {
      *     onProgress = { index, progress ->
      *         println("File $index: $progress%")
      *     }
-     * ) { file ->
-     *     uploadService.upload(file)
+     * ) { file, reportProgress ->
+     *     uploadService.upload(file) { bytesUploaded ->
+     *         reportProgress((bytesUploaded * 100 / file.size).toInt())
+     *     }
      * }
      * ```
      */
@@ -100,16 +102,15 @@ class ParallelProcessor {
         files: List<T>,
         concurrency: Int = DEFAULT_CONCURRENCY,
         onProgress: suspend (fileIndex: Int, progress: Int) -> Unit = { _, _ -> },
-        upload: suspend (T, (Int) -> Unit) -> R
+        upload: suspend (T, suspend (Int) -> Unit) -> R
     ): List<Result<R>> = coroutineScope {
         val semaphore = Semaphore(concurrency)
-        val scope = this
         files.mapIndexed { index, file ->
             async {
                 semaphore.withPermit {
                     runCatching {
                         upload(file) { progress ->
-                            scope.launch { onProgress(index, progress) }
+                            onProgress(index, progress)
                         }
                     }
                 }
@@ -272,10 +273,11 @@ class ParallelProcessor {
         transform: suspend (T) -> R
     ): List<R> = coroutineScope {
         val semaphore = Semaphore(concurrency)
+        val scope = this
         items.chunked(chunkSize).map { chunk ->
             async {
                 semaphore.withPermit {
-                    chunk.map { item -> async { transform(item) } }.awaitAll()
+                    chunk.map { item -> scope.async { transform(item) } }.awaitAll()
                 }
             }
         }.awaitAll().flatten()
