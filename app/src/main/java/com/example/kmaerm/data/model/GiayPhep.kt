@@ -61,3 +61,27 @@ data class VerifyBlockchainRequest(
     val ngay_het_han: String,
     val trang_thai_giay_phep: String
 )
+
+/**
+ * Response from push blockchain API
+ * API returns: { "message": "Đã đẩy h1 và h2 lên blockchain thành công" }
+ */
+data class BlockchainPushResponse(
+    val message: String
+)
+
+/**
+ * Response from verify blockchain API
+ */
+data class BlockchainVerifyResponse(
+    val giay_phep_id: String,
+    val h1_hash_db: String?,
+    val h2_hash_db: String?,
+    val h1_hash_bc: String?,
+    val h2_hash_bc: String?,
+    val is_h1_matched: Boolean,
+    val is_h2_matched: Boolean,
+    val message: String,
+    val giay_phep_data: GiayPhep?
+)
+

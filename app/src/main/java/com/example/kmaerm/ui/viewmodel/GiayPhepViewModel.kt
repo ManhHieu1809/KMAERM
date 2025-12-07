@@ -119,10 +119,13 @@ class GiayPhepViewModel : ViewModel() {
     fun viewFile(context: Context, id: String, fileName: String) {
         viewModelScope.launch {
             try {
+                _isLoading.value = true
                 val response = RetrofitInstance.giayPhepApi.viewFile(id)
                 if (response.isSuccessful && response.body() != null) {
                     val body = response.body()!!
-                    val file = File(context.cacheDir, "view_license_${fileName}.pdf")
+                    // Tạo tên file an toàn (thay thế ký tự đặc biệt)
+                    val safeFileName = fileName.replace(Regex("[^a-zA-Z0-9._-]"), "_")
+                    val file = File(context.cacheDir, "view_license_${safeFileName}.pdf")
                     FileOutputStream(file).use { outputStream ->
                         body.byteStream().use { inputStream ->
                             inputStream.copyTo(outputStream)
@@ -145,10 +148,13 @@ class GiayPhepViewModel : ViewModel() {
                         _error.value = "Không tìm thấy ứng dụng để mở file PDF"
                     }
                 } else {
-                    _error.value = "Không thể tải file"
+                    val errorBody = response.errorBody()?.string()
+                    _error.value = "Không thể tải file (${response.code()}): ${errorBody ?: "Lỗi không xác định"}"
                 }
             } catch (e: Exception) {
                 _error.value = "Lỗi tải file: ${e.message}"
+            } finally {
+                _isLoading.value = false
             }
         }
     }
@@ -180,8 +186,9 @@ class GiayPhepViewModel : ViewModel() {
             try {
                 val response = RetrofitInstance.giayPhepApi.pushToBlockchain(id)
                 if (response.isSuccessful && response.body() != null) {
-                    _successMessage.value = "Đã đẩy lên blockchain thành công"
-                    _selectedGiayPhep.value = response.body()
+                    _successMessage.value = response.body()?.message ?: "Đã đẩy lên blockchain thành công"
+                    // Reload giấy phép để cập nhật trạng thái mới sau khi push blockchain
+                    reloadSelectedGiayPhep(id)
                 } else {
                     val errorBody = response.errorBody()?.string()
                     _error.value = when {
@@ -205,17 +212,51 @@ class GiayPhepViewModel : ViewModel() {
         }
     }
 
-    fun verifyBlockchain(id: String, request: VerifyBlockchainRequest) {
+    /**
+     * Reload selected GiayPhep from server to get updated data
+     */
+    private suspend fun reloadSelectedGiayPhep(id: String) {
+        try {
+            // Get current giay phep's doanh nghiep ID for filtering
+            val currentGiayPhep = _selectedGiayPhep.value
+            if (currentGiayPhep != null) {
+                val doanhNghiepId = currentGiayPhep.ho_so.doanh_nghiep_id
+                val response = RetrofitInstance.giayPhepApi.getGiayPhepByDoanhNghiep(doanhNghiepId)
+                if (response.isSuccessful && response.body() != null) {
+                    val updatedGiayPhep = response.body()?.data?.find { it.id == id }
+                    if (updatedGiayPhep != null) {
+                        _selectedGiayPhep.value = updatedGiayPhep
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Ignore reload errors, success message is already shown
+            e.printStackTrace()
+        }
+    }
+
+    fun verifyBlockchain(id: String) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
             try {
-                val response = RetrofitInstance.giayPhepApi.verifyBlockchain(id, request)
+                val response = RetrofitInstance.giayPhepApi.verifyBlockchain(id)
                 if (response.isSuccessful && response.body() != null) {
-                    _successMessage.value = "Xác nhận blockchain thành công"
-                    _selectedGiayPhep.value = response.body()
+                    val verifyResponse = response.body()!!
+                    _successMessage.value = verifyResponse.message
+                    // Update selected giay phep from response data if available
+                    verifyResponse.giay_phep_data?.let {
+                        _selectedGiayPhep.value = it
+                    }
                 } else {
-                    _error.value = "Không thể xác nhận blockchain"
+                    val errorBody = response.errorBody()?.string()
+                    _error.value = when {
+                        response.code() == 400 -> "Yêu cầu không hợp lệ"
+                        response.code() == 404 -> "Không tìm thấy giấy phép"
+                        response.code() == 500 -> "Lỗi server"
+                        errorBody != null -> errorBody
+                        else -> "Không thể xác nhận blockchain (Code: ${response.code()})"
+                    }
                 }
             } catch (e: Exception) {
                 _error.value = "Lỗi: ${e.message}"

@@ -1,7 +1,5 @@
 package com.example.kmaerm.ui.screens
 
-import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,7 +12,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -601,7 +598,7 @@ fun OfficerHoSoDetailView(
                 title = { Text("Process Profile") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color(0xFF333333) )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -1058,7 +1055,12 @@ fun OfficerHoSoDetailView(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         detail.ho_so_tai_lieus?.forEach { hoSoTaiLieu ->
-                            RequiredDocumentCardReadOnly(hoSoTaiLieu = hoSoTaiLieu)
+                            RequiredDocumentCardReadOnly(
+                                hoSoTaiLieu = hoSoTaiLieu,
+                                onViewFile = { taiLieuId, tieuDe ->
+                                    viewModel.viewTaiLieu(context, taiLieuId, tieuDe)
+                                }
+                            )
                             Spacer(modifier = Modifier.height(12.dp))
                         }
 
@@ -1469,7 +1471,10 @@ fun ProfileProgressIndicator(status: String?) {
 }
 
 @Composable
-fun RequiredDocumentCardReadOnly(hoSoTaiLieu: com.example.kmaerm.data.model.HoSoTaiLieu) {
+fun RequiredDocumentCardReadOnly(
+    hoSoTaiLieu: com.example.kmaerm.data.model.HoSoTaiLieu,
+    onViewFile: (String, String) -> Unit = { _, _ -> }
+) {
     // Kiểm tra xem có tài liệu nào đã được upload chưa
     val hasDocuments = !hoSoTaiLieu.tai_lieus.isNullOrEmpty()
 
@@ -1518,7 +1523,10 @@ fun RequiredDocumentCardReadOnly(hoSoTaiLieu: com.example.kmaerm.data.model.HoSo
             // Danh sách tài liệu đã upload - CHỈ XEM
             hoSoTaiLieu.tai_lieus?.forEach { taiLieu ->
                 Spacer(modifier = Modifier.height(12.dp))
-                DocumentItemReadOnly(taiLieu = taiLieu)
+                DocumentItemReadOnly(
+                    taiLieu = taiLieu,
+                    onViewFile = onViewFile
+                )
             }
 
             if (hoSoTaiLieu.tai_lieus.isNullOrEmpty()) {
@@ -1536,7 +1544,10 @@ fun RequiredDocumentCardReadOnly(hoSoTaiLieu: com.example.kmaerm.data.model.HoSo
 }
 
 @Composable
-fun DocumentItemReadOnly(taiLieu: com.example.kmaerm.data.model.TaiLieu) {
+fun DocumentItemReadOnly(
+    taiLieu: com.example.kmaerm.data.model.TaiLieu,
+    onViewFile: (String, String) -> Unit = { _, _ -> }
+) {
     val context = LocalContext.current
 
     Card(
@@ -1576,37 +1587,10 @@ fun DocumentItemReadOnly(taiLieu: com.example.kmaerm.data.model.TaiLieu) {
 
             // Icon xem - CHỈ XEM, không có xóa
             IconButton(onClick = {
-                try {
-                    val fileUrl = taiLieu.duong_dan
-                    if (fileUrl.isBlank()) {
-                        Toast.makeText(context, "Không tìm thấy đường dẫn file", Toast.LENGTH_SHORT).show()
-                        return@IconButton
-                    }
-
-                    val mimeType = when {
-                        fileUrl.endsWith(".pdf", ignoreCase = true) -> "application/pdf"
-                        fileUrl.endsWith(".jpg", ignoreCase = true) ||
-                        fileUrl.endsWith(".jpeg", ignoreCase = true) -> "image/jpeg"
-                        fileUrl.endsWith(".png", ignoreCase = true) -> "image/png"
-                        fileUrl.endsWith(".gif", ignoreCase = true) -> "image/gif"
-                        fileUrl.endsWith(".bmp", ignoreCase = true) -> "image/bmp"
-                        fileUrl.endsWith(".webp", ignoreCase = true) -> "image/webp"
-                        else -> "*/*"
-                    }
-
-                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(Uri.parse(fileUrl), mimeType)
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-
-                    try {
-                        context.startActivity(intent)
-                    } catch (e: Exception) {
-                        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(fileUrl))
-                        context.startActivity(browserIntent)
-                    }
-                } catch (e: Exception) {
-                    Toast.makeText(context, "Không thể mở tài liệu: ${e.message}", Toast.LENGTH_SHORT).show()
+                if (taiLieu.duong_dan.isBlank()) {
+                    Toast.makeText(context, "Không tìm thấy đường dẫn file", Toast.LENGTH_SHORT).show()
+                } else {
+                    onViewFile(taiLieu.id, taiLieu.tieu_de)
                 }
             }) {
                 Icon(

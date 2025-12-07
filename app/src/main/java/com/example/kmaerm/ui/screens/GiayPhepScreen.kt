@@ -90,9 +90,20 @@ fun GiayPhepScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(giayPhepList) { giayPhep ->
-                    GiayPhepCard(giayPhep) {
-                        // Handle card click
-                    }
+                    GiayPhepCard(
+                        giayPhep = giayPhep,
+                        onClick = {
+                            // Handle card click
+                        },
+                        onViewFile = {
+                            // Xem file giấy phép qua API
+                            if (!giayPhep.file_duong_dan.isNullOrBlank()) {
+                                viewModel.viewFile(context, giayPhep.id, giayPhep.so_giay_phep)
+                            } else {
+                                Toast.makeText(context, "Giấy phép chưa có file đính kèm", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -100,7 +111,11 @@ fun GiayPhepScreen(
 }
 
 @Composable
-fun GiayPhepCard(giayPhep: GiayPhep, onClick: () -> Unit = {}) {
+fun GiayPhepCard(
+    giayPhep: GiayPhep,
+    onClick: () -> Unit = {},
+    onViewFile: () -> Unit = {}
+) {
     val statusText = when (giayPhep.trang_thai_giay_phep) {
         "HieuLuc" -> "Hiệu lực"
         "SapHetHan" -> "Sắp hết hạn"
@@ -310,6 +325,38 @@ fun GiayPhepCard(giayPhep: GiayPhep, onClick: () -> Unit = {}) {
                             fontWeight = FontWeight.Medium,
                             maxLines = 1
                         )
+                    }
+                }
+
+                // Nút xem file giấy phép
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color.White.copy(alpha = 0.2f),
+                        modifier = Modifier.clickable { onViewFile() }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Visibility,
+                                contentDescription = "Xem file giấy phép",
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "Xem file",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color.White
+                            )
+                        }
                     }
                 }
             }

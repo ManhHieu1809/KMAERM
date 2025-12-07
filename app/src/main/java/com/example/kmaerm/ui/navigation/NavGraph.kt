@@ -12,6 +12,7 @@ sealed class Screen(val route: String) {
     object Login : Screen("login")
     object Main : Screen("main")
     object OfficerMain : Screen("officer_main")
+    object ParallelDemo : Screen("parallel_demo")
     object HoSoDetail : Screen("ho_so_detail/{hoSoId}") {
         fun createRoute(hoSoId: String) = "ho_so_detail/$hoSoId"
     }
@@ -54,6 +55,9 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
                 },
                 onNavigateToChangePassword = {
                     navController.navigate(Screen.ChangePassword.route)
+                },
+                onNavigateToParallelDemo = {
+                    navController.navigate(Screen.ParallelDemo.route)
                 }
             )
         }
@@ -115,6 +119,14 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
 
         composable(Screen.ChangePassword.route) {
             ChangePasswordScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Screen.ParallelDemo.route) {
+            ParallelProcessingDemoScreen(
                 onNavigateBack = {
                     navController.popBackStack()
                 }

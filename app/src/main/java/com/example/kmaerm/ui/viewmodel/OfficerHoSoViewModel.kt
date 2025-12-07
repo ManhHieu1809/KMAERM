@@ -1,5 +1,6 @@
 package com.example.kmaerm.ui.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kmaerm.data.api.RetrofitInstance
@@ -7,6 +8,8 @@ import com.example.kmaerm.data.model.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 
 class OfficerHoSoViewModel : ViewModel() {
     private val _hoSoList = MutableStateFlow<List<HoSo>>(emptyList())
@@ -137,5 +140,48 @@ class OfficerHoSoViewModel : ViewModel() {
 
     fun clearUpdateSuccess() {
         _updateSuccess.value = false
+    }
+
+    fun viewTaiLieu(context: Context, taiLieuId: String, tieuDe: String) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                val response = RetrofitInstance.hoSoApi.downloadTaiLieu(taiLieuId)
+                if (response.isSuccessful && response.body() != null) {
+                    val body = response.body()!!
+                    // Tạo tên file an toàn
+                    val safeFileName = tieuDe.replace(Regex("[^a-zA-Z0-9._-]"), "_")
+                    val file = File(context.cacheDir, "view_doc_${safeFileName}.pdf")
+                    FileOutputStream(file).use { outputStream ->
+                        body.byteStream().use { inputStream ->
+                            inputStream.copyTo(outputStream)
+                        }
+                    }
+
+                    try {
+                        val uri = androidx.core.content.FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.provider",
+                            file
+                        )
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                            setDataAndType(uri, "application/pdf")
+                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        _error.value = "Không tìm thấy ứng dụng để mở file PDF"
+                    }
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    _error.value = "Không thể tải file (${response.code()}): ${errorBody ?: "Lỗi không xác định"}"
+                }
+            } catch (e: Exception) {
+                _error.value = "Lỗi tải file: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
     }
 }

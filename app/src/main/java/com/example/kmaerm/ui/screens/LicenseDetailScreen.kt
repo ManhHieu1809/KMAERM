@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kmaerm.data.model.GiayPhep
-import com.example.kmaerm.data.model.VerifyBlockchainRequest
 import com.example.kmaerm.ui.viewmodel.GiayPhepViewModel
 import java.io.File
 
@@ -139,15 +138,7 @@ fun LicenseDetailScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        val request = VerifyBlockchainRequest(
-                            ho_so_id = currentGiayPhep.ho_so_id,
-                            loai_giay_phep = currentGiayPhep.loai_giay_phep,
-                            so_giay_phep = currentGiayPhep.so_giay_phep,
-                            ngay_hieu_luc = currentGiayPhep.ngay_hieu_luc ?: "",
-                            ngay_het_han = currentGiayPhep.ngay_het_han ?: "",
-                            trang_thai_giay_phep = currentGiayPhep.trang_thai_giay_phep
-                        )
-                        viewModel.verifyBlockchain(currentGiayPhep.id, request)
+                        viewModel.verifyBlockchain(currentGiayPhep.id)
                         showVerifyDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A))

@@ -26,6 +26,7 @@ fun AccountScreen(
     onLogout: () -> Unit = {},
     onNavigateToCompanyInfo: () -> Unit = {},
     onNavigateToChangePassword: () -> Unit = {},
+    onNavigateToParallelDemo: () -> Unit = {},
     viewModel: AccountViewModel = viewModel()
 ) {
     val doanhNghiep by viewModel.doanhNghiep.collectAsState()
@@ -112,6 +113,18 @@ fun AccountScreen(
                     icon = Icons.Default.Lock,
                     title = "Change Password",
                     onClick = onNavigateToChangePassword
+                )
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(start = 56.dp),
+                    color = Color(0xFFE0E0E0),
+                    thickness = 0.5.dp
+                )
+
+                AccountMenuItem(
+                    icon = Icons.Default.Speed,
+                    title = "Demo Xử lý Song song",
+                    onClick = onNavigateToParallelDemo
                 )
 
                 HorizontalDivider(

@@ -43,8 +43,8 @@ interface GiayPhepApiService {
     suspend fun deleteGiayPhepFile(@Path("id") id: String): Response<GiayPhep>
 
     @POST("/api/v1/giay-phep/{id}/push-blockchain")
-    suspend fun pushToBlockchain(@Path("id") id: String): Response<GiayPhep>
+    suspend fun pushToBlockchain(@Path("id") id: String): Response<BlockchainPushResponse>
 
-    @POST("/api/v1/giay-phep/{id}/verify")
-    suspend fun verifyBlockchain(@Path("id") id: String, @Body request: VerifyBlockchainRequest): Response<GiayPhep>
+    @GET("/api/v1/giay-phep/{id}/verify")
+    suspend fun verifyBlockchain(@Path("id") id: String): Response<BlockchainVerifyResponse>
 }

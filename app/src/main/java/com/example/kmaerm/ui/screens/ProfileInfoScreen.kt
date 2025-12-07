@@ -33,7 +33,6 @@ fun ProfileInfoScreen(
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var roleName by remember { mutableStateOf("") }
-    var roleId by remember { mutableStateOf("") }
     var doanhNghiepId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
@@ -125,8 +124,8 @@ fun ProfileInfoScreen(
                     ) {
                         Text(
                             text = when (roleName) {
-                                "CAN_BO" -> "Cán bộ"
-                                "DOANH_NGHIEP" -> "Doanh nghiệp"
+                                "CanBo", "CAN_BO" -> "Cán bộ"
+                                "DoanhNghiep", "DOANH_NGHIEP" -> "Doanh nghiệp"
                                 else -> roleName
                             },
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -200,8 +199,8 @@ fun ProfileInfoScreen(
                         icon = Icons.Default.WorkOutline,
                         label = "Vai trò",
                         value = when (roleName) {
-                            "CAN_BO" -> "Cán bộ"
-                            "DOANH_NGHIEP" -> "Doanh nghiệp"
+                            "CanBo", "CAN_BO" -> "Cán bộ"
+                            "DoanhNghiep", "DOANH_NGHIEP" -> "Doanh nghiệp"
                             else -> roleName
                         }
                     )

@@ -107,7 +107,7 @@ fun OfficerGiayPhepDetailScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Back")
+                        Icon(Icons.Default.ArrowBack, "Back", tint = Color(0xFF333333))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -302,7 +302,7 @@ fun OfficerGiayPhepDetailScreen(
                 )
 
                 when (currentGiayPhep.trang_thai_blockchain) {
-                    "DaDongBo" -> {
+                    "TrangThaiBCDaDongBo" -> {
                         // Verified State - Green
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -824,25 +824,17 @@ fun OfficerGiayPhepDetailScreen(
             title = { Text("Verify Blockchain") },
             text = {
                 Text(
-                    if (currentGiayPhep.trang_thai_blockchain == "DaDongBo") {
-                        "Verify this license on the blockchain?"
+                    if (currentGiayPhep.trang_thai_blockchain == "TrangThaiBCDaDongBo") {
+                        "Xác minh giấy phép này trên blockchain?"
                     } else {
-                        "Confirm that this license has been successfully pushed to blockchain?"
+                        "Xác nhận rằng giấy phép này đã được đưa lên blockchain thành công?"
                     }
                 )
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        val verifyRequest = com.example.kmaerm.data.model.VerifyBlockchainRequest(
-                            ho_so_id = currentGiayPhep.ho_so_id,
-                            loai_giay_phep = currentGiayPhep.loai_giay_phep,
-                            so_giay_phep = currentGiayPhep.so_giay_phep,
-                            ngay_hieu_luc = currentGiayPhep.ngay_hieu_luc ?: "",
-                            ngay_het_han = currentGiayPhep.ngay_het_han ?: "",
-                            trang_thai_giay_phep = currentGiayPhep.trang_thai_giay_phep
-                        )
-                        viewModel.verifyBlockchain(currentGiayPhep.id, verifyRequest)
+                        viewModel.verifyBlockchain(currentGiayPhep.id)
                         showVerifyDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(
@@ -865,7 +857,7 @@ fun OfficerGiayPhepDetailScreen(
         AlertDialog(
             onDismissRequest = { showUpdateDialog = false },
             title = { Text("Update License Status") },
-            text = { Text("Are you sure you want to update the license status?") },
+            text = { Text("Bạn có chắc chắn muốn cập nhật trạng thái giấy phép không?") },
             confirmButton = {
                 Button(
                     onClick = {

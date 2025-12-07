@@ -17,7 +17,8 @@ fun MainScreen(
     onLogout: () -> Unit = {},
     onNavigateToHoSoDetail: (String) -> Unit = {},
     onNavigateToCompanyInfo: () -> Unit = {},
-    onNavigateToChangePassword: () -> Unit = {}
+    onNavigateToChangePassword: () -> Unit = {},
+    onNavigateToParallelDemo: () -> Unit = {}
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(0) }
 
@@ -138,7 +139,8 @@ fun MainScreen(
                 3 -> AccountScreen(
                     onLogout = onLogout,
                     onNavigateToCompanyInfo = onNavigateToCompanyInfo,
-                    onNavigateToChangePassword = onNavigateToChangePassword
+                    onNavigateToChangePassword = onNavigateToChangePassword,
+                    onNavigateToParallelDemo = onNavigateToParallelDemo
                 )
             }
         }

@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kmaerm.ui.viewmodel.OfficerDoanhNghiepViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun OfficerMainScreen(
@@ -93,7 +94,10 @@ fun OfficerHomeTab(
     onNavigateToTab: (Int) -> Unit
 ) {
     val context = LocalContext.current
-    val userPrefs = remember { com.example.kmaerm.data.local.UserPreferences(context) }
+    val tokenDataStore = remember { com.example.kmaerm.data.datastore.TokenDataStore(context) }
+    val fullName by tokenDataStore.fullName.collectAsState(initial = "")
+    val email by tokenDataStore.email.collectAsState(initial = "")
+
     val viewModel: OfficerDoanhNghiepViewModel = viewModel()
     val doanhNghiepList by viewModel.doanhNghiepList.collectAsState()
 
@@ -143,7 +147,7 @@ fun OfficerHomeTab(
                             color = Color.Gray
                         )
                         Text(
-                            text = userPrefs.getFullName() ?: "Cán bộ",
+                            text = if (!fullName.isNullOrEmpty()) fullName!! else "Cán bộ",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF333333)
@@ -169,7 +173,7 @@ fun OfficerHomeTab(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = userPrefs.getEmail() ?: "N/A",
+                        text = if (!email.isNullOrEmpty()) email!! else "N/A",
                         fontSize = 14.sp,
                         color = Color(0xFF666666)
                     )
@@ -373,7 +377,15 @@ fun OfficerAccountTab(
     onLogout: () -> Unit
 ) {
     val context = LocalContext.current
-    val userPrefs = remember { com.example.kmaerm.data.local.UserPreferences(context) }
+    val scope = rememberCoroutineScope()
+    val tokenDataStore = remember { com.example.kmaerm.data.datastore.TokenDataStore(context) }
+
+    // State để lưu thông tin user từ TokenDataStore
+    val fullName by tokenDataStore.fullName.collectAsState(initial = "")
+    val email by tokenDataStore.email.collectAsState(initial = "")
+    val roleName by tokenDataStore.role.collectAsState(initial = "")
+    val userId by tokenDataStore.userId.collectAsState(initial = "")
+
     var showChangePasswordScreen by remember { mutableStateOf(false) }
     var showProfileInfoScreen by remember { mutableStateOf(false) }
 
@@ -430,7 +442,7 @@ fun OfficerAccountTab(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = userPrefs.getFullName() ?: "Cán bộ BCA",
+                    text = if (!fullName.isNullOrEmpty()) fullName!! else "Cán bộ BCA",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF333333)
@@ -443,10 +455,10 @@ fun OfficerAccountTab(
                     color = Color(0xFF4CAF50).copy(alpha = 0.1f)
                 ) {
                     Text(
-                        text = when (userPrefs.getRoleName()) {
-                            "CAN_BO" -> "Cán bộ"
-                            "DOANH_NGHIEP" -> "Doanh nghiệp"
-                            else -> userPrefs.getRoleName() ?: "User"
+                        text = when (roleName) {
+                            "CanBo", "CAN_BO" -> "Cán bộ"
+                            "DoanhNghiep", "DOANH_NGHIEP" -> "Doanh nghiệp"
+                            else -> if (!roleName.isNullOrEmpty()) roleName!! else "User"
                         },
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         fontSize = 13.sp,
@@ -474,7 +486,7 @@ fun OfficerAccountTab(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = userPrefs.getEmail() ?: "N/A",
+                        text = if (!email.isNullOrEmpty()) email!! else "N/A",
                         fontSize = 15.sp,
                         color = Color(0xFF666666)
                     )
@@ -495,7 +507,7 @@ fun OfficerAccountTab(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "ID: ${userPrefs.getUserId()?.take(8) ?: "N/A"}...",
+                        text = if (!userId.isNullOrEmpty()) "ID: ${userId!!.take(8)}..." else "ID: N/A",
                         fontSize = 13.sp,
                         color = Color(0xFF999999),
                         fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
@@ -550,8 +562,10 @@ fun OfficerAccountTab(
         // Logout Button
         Button(
             onClick = {
-                userPrefs.clearUserData()
-                onLogout()
+                scope.launch {
+                    tokenDataStore.clearToken()
+                    onLogout()
+                }
             },
             modifier = Modifier.fillMaxWidth().height(50.dp),
             colors = ButtonDefaults.buttonColors(
