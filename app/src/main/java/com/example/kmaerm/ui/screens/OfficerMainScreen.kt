@@ -491,28 +491,6 @@ fun OfficerAccountTab(
                         color = Color(0xFF666666)
                     )
                 }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // User ID
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Badge,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = Color(0xFF666666)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = if (!userId.isNullOrEmpty()) "ID: ${userId!!.take(8)}..." else "ID: N/A",
-                        fontSize = 13.sp,
-                        color = Color(0xFF999999),
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-                    )
-                }
             }
         }
 
@@ -584,14 +562,6 @@ fun OfficerAccountTab(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Version info
-        Text(
-            text = "Version 1.0.0",
-            fontSize = 12.sp,
-            color = Color.Gray,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
     }
 }
 

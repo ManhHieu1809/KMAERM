@@ -1,6 +1,7 @@
 package com.example.kmaerm.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -22,13 +23,50 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kmaerm.data.datastore.TokenDataStore
 import com.example.kmaerm.ui.viewmodel.AccountViewModel
+import com.example.kmaerm.ui.viewmodel.HoSoViewModel
+import com.example.kmaerm.ui.viewmodel.GiayPhepViewModel
 import kotlinx.coroutines.flow.first
 
 @Composable
 fun HomeScreen(
-    viewModel: AccountViewModel = viewModel()
+    viewModel: AccountViewModel = viewModel(),
+    hoSoViewModel: HoSoViewModel = viewModel(),
+    giayPhepViewModel: GiayPhepViewModel = viewModel(),
+    onNavigateToTab: (Int) -> Unit = {},
+    onNavigateToCompanyInfo: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val tokenDataStore = remember { TokenDataStore(context) }
     val doanhNghiep by viewModel.doanhNghiep.collectAsState()
+    val hoSoList by hoSoViewModel.hoSoList.collectAsState()
+    val giayPhepList by giayPhepViewModel.giayPhepList.collectAsState()
+
+    var doanhNghiepId by remember { mutableStateOf<String?>(null) }
+
+    // Load doanhNghiepId và dữ liệu
+    LaunchedEffect(Unit) {
+        doanhNghiepId = tokenDataStore.doanhNghiepId.first()
+    }
+
+    LaunchedEffect(doanhNghiepId) {
+        doanhNghiepId?.let { id ->
+            hoSoViewModel.loadHoSoList(id)
+            giayPhepViewModel.loadGiayPhepList(id)
+        }
+    }
+
+    // Tính toán thống kê từ dữ liệu thực
+    val totalHoSo = hoSoList.size
+    val moiTaoHoSo = hoSoList.count { it.trang_thai_ho_so == "MoiTao" }
+    val pendingHoSo = hoSoList.count {
+        it.trang_thai_ho_so == "DaTiepNhan" || it.trang_thai_ho_so == "DangXuLy"
+    }
+    val approvedHoSo = hoSoList.count { it.trang_thai_ho_so == "DaDuyet" }
+    val rejectedHoSo = hoSoList.count { it.trang_thai_ho_so == "BiTraLai" }
+
+    val totalGiayPhep = giayPhepList.size
+    // Sắp hết hạn
+    val soonExpireGiayPhep = giayPhepList.count { it.trang_thai_giay_phep == "SapHetHan" }
 
     Column(
         modifier = Modifier
@@ -75,7 +113,7 @@ fun HomeScreen(
             }
         }
 
-        // Hero Card
+        // Hero Card - Thống kê hồ sơ
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -97,14 +135,14 @@ fun HomeScreen(
                     modifier = Modifier.weight(2f)
                 ) {
                     Text(
-                        text = "Total Profiles: 5",
+                        text = "Tổng hồ sơ: $totalHoSo",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF333333)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Pending: 2",
+                        text = "Đang xử lý: $pendingHoSo",
                         fontSize = 16.sp,
                         color = Color(0xFF0056B3),
                         fontWeight = FontWeight.Medium
@@ -122,31 +160,83 @@ fun HomeScreen(
             }
         }
 
+        // Thống kê chi tiết
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Mới tạo
+            StatCard(
+                count = moiTaoHoSo,
+                label = "Mới tạo",
+                color = Color(0xFF9E9E9E),
+                modifier = Modifier.weight(1f)
+            )
+
+            // Đã duyệt
+            StatCard(
+                count = approvedHoSo,
+                label = "Đã duyệt",
+                color = Color(0xFF4CAF50),
+                modifier = Modifier.weight(1f)
+            )
+
+            // Chờ xử lý
+            StatCard(
+                count = pendingHoSo,
+                label = "Chờ xử lý",
+                color = Color(0xFFFF9800),
+                modifier = Modifier.weight(1f)
+            )
+
+            // Bị trả lại
+            StatCard(
+                count = rejectedHoSo,
+                label = "Trả lại",
+                color = Color(0xFFF44336),
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // Action Grid
+        Text(
+            text = "Thao tác nhanh",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF333333),
+            modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
+        )
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Create New Profile - Primary Blue
+            // Xem hồ sơ
             ActionCard(
-                icon = Icons.Default.PersonAdd,
-                label = "Create New Profile",
+                icon = Icons.Default.FolderOpen,
+                label = "Hồ sơ",
                 backgroundColor = Color(0xFF0056B3),
                 iconTint = Color.White,
                 textColor = Color.White,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onClick = { onNavigateToTab(1) }
             )
 
-            // Search Profiles
+            // Xem giấy phép
             ActionCard(
-                icon = Icons.Default.Search,
-                label = "Search Profiles",
-                backgroundColor = Color(0xFFF5F5F5),
-                iconTint = Color(0xFF333333),
-                textColor = Color(0xFF333333),
-                modifier = Modifier.weight(1f)
+                icon = Icons.Default.VerifiedUser,
+                label = "Giấy phép",
+                backgroundColor = Color(0xFF4CAF50),
+                iconTint = Color.White,
+                textColor = Color.White,
+                modifier = Modifier.weight(1f),
+                onClick = { onNavigateToTab(2) }
             )
         }
 
@@ -158,31 +248,127 @@ fun HomeScreen(
                 .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Manage Users
+            // Tài khoản
             ActionCard(
-                icon = Icons.Default.Group,
-                label = "Manage Users",
+                icon = Icons.Default.AccountCircle,
+                label = "Tài khoản",
                 backgroundColor = Color(0xFFF5F5F5),
                 iconTint = Color(0xFF333333),
                 textColor = Color(0xFF333333),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onClick = { onNavigateToTab(3) }
             )
 
-            // View Reports
+            // Thông tin DN
             ActionCard(
-                icon = Icons.Default.BarChart,
-                label = "View Reports",
+                icon = Icons.Default.Business,
+                label = "Thông tin DN",
                 backgroundColor = Color(0xFFF5F5F5),
                 iconTint = Color(0xFF333333),
                 textColor = Color(0xFF333333),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onClick = onNavigateToCompanyInfo
             )
         }
 
-        // Recent Activity Section
+        // Thống kê giấy phép
         Text(
-            text = "Recent Activity",
-            fontSize = 20.sp,
+            text = "Giấy phép",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF333333),
+            modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 12.dp)
+        )
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            text = "Tổng giấy phép",
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                        Text(
+                            text = "$totalGiayPhep",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF333333)
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Default.VerifiedUser,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = Color(0xFF4CAF50).copy(alpha = 0.6f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = Color(0xFFE0E0E0))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "${giayPhepList.count { it.trang_thai_giay_phep == "HieuLuc" }}",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF4CAF50)
+                        )
+                        Text(
+                            text = "Hiệu lực",
+                            fontSize = 12.sp,
+                            color = Color.Gray
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "$soonExpireGiayPhep",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFF9800)
+                        )
+                        Text(
+                            text = "Sắp hết hạn",
+                            fontSize = 12.sp,
+                            color = Color.Gray
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "${giayPhepList.count { it.trang_thai_giay_phep == "DaHetHan" || it.trang_thai_giay_phep == "ThuHoi" }}",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFF44336)
+                        )
+                        Text(
+                            text = "Hết hạn",
+                            fontSize = 12.sp,
+                            color = Color.Gray
+                        )
+                    }
+                }
+            }
+        }
+
+        // Hoạt động gần đây
+        Text(
+            text = "Hồ sơ gần đây",
+            fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF333333),
             modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 12.dp)
@@ -197,47 +383,89 @@ fun HomeScreen(
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
             Column {
-                ActivityItem(
-                    icon = Icons.Default.CheckCircle,
-                    iconColor = Color(0xFF4CAF50),
-                    title = "Profile for 'ABC Corp' approved",
-                    subtitle = "Status: Approved",
-                    time = "2h ago"
-                )
+                if (hoSoList.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Chưa có hồ sơ nào",
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                    }
+                } else {
+                    hoSoList.take(4).forEachIndexed { index, hoSo ->
+                        val (icon, iconColor) = when (hoSo.trang_thai_ho_so) {
+                            "DaDuyet" -> Icons.Default.CheckCircle to Color(0xFF4CAF50)
+                            "BiTraLai" -> Icons.Default.Cancel to Color(0xFFF44336)
+                            "DangXuLy" -> Icons.Default.PendingActions to Color(0xFFFF9800)
+                            "DaTiepNhan" -> Icons.Default.AccessTime to Color(0xFF2196F3)
+                            else -> Icons.Default.Description to Color(0xFF9E9E9E)
+                        }
 
-                HorizontalDivider(color = Color(0xFFE0E0E0), thickness = 0.5.dp)
+                        val statusText = when (hoSo.trang_thai_ho_so) {
+                            "MoiTao" -> "Mới tạo"
+                            "DaTiepNhan" -> "Đã tiếp nhận"
+                            "DangXuLy" -> "Đang xử lý"
+                            "DaDuyet" -> "Đã duyệt"
+                            "BiTraLai" -> "Bị trả lại"
+                            else -> hoSo.trang_thai_ho_so
+                        }
 
-                ActivityItem(
-                    icon = Icons.Default.PersonAdd,
-                    iconColor = Color(0xFF2196F3),
-                    title = "New user 'John Doe' was added",
-                    subtitle = "Action: User added",
-                    time = "1d ago"
-                )
+                        ActivityItem(
+                            icon = icon,
+                            iconColor = iconColor,
+                            title = hoSo.ma_ho_so,
+                            subtitle = "Trạng thái: $statusText",
+                            time = hoSo.ngay_dang_ky.take(10)
+                        )
 
-                HorizontalDivider(color = Color(0xFFE0E0E0), thickness = 0.5.dp)
-
-                ActivityItem(
-                    icon = Icons.Default.Receipt,
-                    iconColor = Color(0xFF9C27B0),
-                    title = "Report generated successfully",
-                    subtitle = "Type: Monthly Financials",
-                    time = "3d ago"
-                )
-
-                HorizontalDivider(color = Color(0xFFE0E0E0), thickness = 0.5.dp)
-
-                ActivityItem(
-                    icon = Icons.Default.PendingActions,
-                    iconColor = Color(0xFFFF9800),
-                    title = "Profile for 'XYZ Solutions' pending",
-                    subtitle = "Status: Awaiting review",
-                    time = "5d ago"
-                )
+                        if (index < minOf(hoSoList.size - 1, 3)) {
+                            HorizontalDivider(color = Color(0xFFE0E0E0), thickness = 0.5.dp)
+                        }
+                    }
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(80.dp)) // Space for bottom navigation
+    }
+}
+
+@Composable
+fun StatCard(
+    count: Int,
+    label: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "$count",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+            Text(
+                text = label,
+                fontSize = 12.sp,
+                color = Color.Gray
+            )
+        }
     }
 }
 
@@ -248,11 +476,13 @@ fun ActionCard(
     backgroundColor: Color,
     iconTint: Color,
     textColor: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
 ) {
     Card(
         modifier = modifier
-            .aspectRatio(1f),
+            .aspectRatio(1f)
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)

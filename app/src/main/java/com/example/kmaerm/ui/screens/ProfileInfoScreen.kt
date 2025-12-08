@@ -29,19 +29,15 @@ fun ProfileInfoScreen(
     val scope = rememberCoroutineScope()
     val tokenDataStore = remember { TokenDataStore(context) }
 
-    var userId by remember { mutableStateOf("") }
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var roleName by remember { mutableStateOf("") }
-    var doanhNghiepId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         scope.launch {
-            userId = tokenDataStore.userId.first() ?: "N/A"
             fullName = tokenDataStore.fullName.first() ?: "N/A"
             email = tokenDataStore.email.first() ?: "N/A"
             roleName = tokenDataStore.role.first() ?: "N/A"
-            doanhNghiepId = tokenDataStore.doanhNghiepId.first()
         }
     }
 
@@ -158,18 +154,6 @@ fun ProfileInfoScreen(
                 Column(
                     modifier = Modifier.padding(16.dp)
                 ) {
-                    // User ID
-                    InfoRow(
-                        icon = Icons.Default.Badge,
-                        label = "User ID",
-                        value = userId
-                    )
-
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 12.dp),
-                        color = Color(0xFFE0E0E0)
-                    )
-
                     // Full Name
                     InfoRow(
                         icon = Icons.Default.Person,
@@ -203,49 +187,6 @@ fun ProfileInfoScreen(
                             "DoanhNghiep", "DOANH_NGHIEP" -> "Doanh nghiệp"
                             else -> roleName
                         }
-                    )
-
-                    // Doanh Nghiep ID (if exists)
-                    doanhNghiepId?.let { dnId ->
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 12.dp),
-                            color = Color(0xFFE0E0E0)
-                        )
-
-                        InfoRow(
-                            icon = Icons.Default.Business,
-                            label = "Doanh nghiệp ID",
-                            value = dnId
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Note
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9C4)),
-                elevation = CardDefaults.cardElevation(0.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = null,
-                        tint = Color(0xFFF57F17),
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "Để cập nhật thông tin, vui lòng liên hệ quản trị viên.",
-                        fontSize = 13.sp,
-                        color = Color(0xFF5D4037),
-                        lineHeight = 18.sp
                     )
                 }
             }

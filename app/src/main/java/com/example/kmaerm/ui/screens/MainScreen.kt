@@ -133,7 +133,10 @@ fun MainScreen(
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
             when (selectedTab) {
-                0 -> HomeScreen()
+                0 -> HomeScreen(
+                    onNavigateToTab = { tabIndex -> selectedTab = tabIndex },
+                    onNavigateToCompanyInfo = onNavigateToCompanyInfo
+                )
                 1 -> ProfileScreen(onNavigateToDetail = onNavigateToHoSoDetail)
                 2 -> LicenseScreen()
                 3 -> AccountScreen(

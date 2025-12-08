@@ -58,7 +58,7 @@ fun CompanyInfoScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Back")
+                        Icon(Icons.Default.ArrowBack, "Back", tint = Color(0xFF333333))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
