@@ -27,3 +27,57 @@ data class ChangePasswordRequest(
 data class ChangePasswordResponse(
     val message: String
 )
+
+data class ForgotPasswordRequest(
+    val email: String
+)
+
+data class ForgotPasswordResponse(
+    val message: String,
+    val data: OTPData? = null
+)
+
+data class OTPData(
+    val otp_sent_at: Long,
+    val expires_in: Int = 60
+)
+
+data class VerifyOTPRequest(
+    val email: String,
+    val otp: String
+)
+
+data class VerifyOTPResponse(
+    val message: String,
+    val data: OTPVerificationData? = null
+)
+
+data class OTPVerificationData(
+    val verified: Boolean
+)
+
+data class ResetPasswordRequest(
+    val email: String,
+    val otp: String,
+    val new_password: String
+)
+
+data class ResetPasswordResponse(
+    val message: String
+)
+
+
+data class BiometricSettingsRequest(
+    val enabled: Boolean
+)
+
+data class BiometricSettingsResponse(
+    val message: String,
+    val data: BiometricData? = null
+)
+
+data class BiometricData(
+    val biometric_enabled: Boolean,
+    val updated_at: Long
+)
+

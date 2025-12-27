@@ -42,6 +42,9 @@ interface GiayPhepApiService {
     @DELETE("/api/v1/giay-phep/{id}")
     suspend fun deleteGiayPhepFile(@Path("id") id: String): Response<GiayPhep>
 
+    @POST("/api/v1/giay-phep/{id}/ky-so")
+    suspend fun signLicense(@Path("id") id: String): Response<GiayPhep>
+
     @POST("/api/v1/giay-phep/{id}/push-blockchain")
     suspend fun pushToBlockchain(@Path("id") id: String): Response<BlockchainPushResponse>
 

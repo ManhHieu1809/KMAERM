@@ -53,6 +53,25 @@ class GiayPhepViewModel : ViewModel() {
         }
     }
 
+    fun loadGiayPhepDetail(giayPhepId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _error.value = null
+            try {
+                val existingGiayPhep = _giayPhepList.value.find { it.id == giayPhepId }
+                if (existingGiayPhep != null) {
+                    _selectedGiayPhep.value = existingGiayPhep
+                } else {
+                    _error.value = "Không tìm thấy giấy phép"
+                }
+            } catch (e: Exception) {
+                _error.value = "Lỗi: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
     fun updateGiayPhep(id: String, request: UpdateGiayPhepRequest) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -187,7 +206,6 @@ class GiayPhepViewModel : ViewModel() {
                 val response = RetrofitInstance.giayPhepApi.pushToBlockchain(id)
                 if (response.isSuccessful && response.body() != null) {
                     _successMessage.value = response.body()?.message ?: "Đã đẩy lên blockchain thành công"
-                    // Reload giấy phép để cập nhật trạng thái mới sau khi push blockchain
                     reloadSelectedGiayPhep(id)
                 } else {
                     val errorBody = response.errorBody()?.string()
@@ -212,12 +230,37 @@ class GiayPhepViewModel : ViewModel() {
         }
     }
 
-    /**
-     * Reload selected GiayPhep from server to get updated data
-     */
+    fun signLicense(id: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _error.value = null
+            try {
+                val response = RetrofitInstance.giayPhepApi.signLicense(id)
+                if (response.isSuccessful && response.body() != null) {
+                    _successMessage.value = "Ký số giấy phép thành công"
+                    reloadSelectedGiayPhep(id)
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    _error.value = when {
+                        response.code() == 400 -> "Yêu cầu không hợp lệ. Giấy phép chưa có file để ký."
+                        response.code() == 403 -> "Bạn không có quyền ký giấy phép này"
+                        response.code() == 404 -> "Không tìm thấy giấy phép"
+                        response.code() == 500 -> "Lỗi server. Vui lòng thử lại sau."
+                        errorBody != null -> errorBody
+                        else -> "Không thể ký số giấy phép (Code: ${response.code()})"
+                    }
+                }
+            } catch (e: Exception) {
+                _error.value = "Lỗi ký số: ${e.message ?: "Không xác định"}"
+                e.printStackTrace()
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
     private suspend fun reloadSelectedGiayPhep(id: String) {
         try {
-            // Get current giay phep's doanh nghiep ID for filtering
             val currentGiayPhep = _selectedGiayPhep.value
             if (currentGiayPhep != null) {
                 val doanhNghiepId = currentGiayPhep.ho_so.doanh_nghiep_id
@@ -230,8 +273,14 @@ class GiayPhepViewModel : ViewModel() {
                 }
             }
         } catch (e: Exception) {
-            // Ignore reload errors, success message is already shown
             e.printStackTrace()
+        }
+    }
+
+
+    fun reloadGiayPhep(giayPhepId: String) {
+        viewModelScope.launch {
+            reloadSelectedGiayPhep(giayPhepId)
         }
     }
 

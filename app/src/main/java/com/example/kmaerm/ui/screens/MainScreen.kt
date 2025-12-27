@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.sp
 fun MainScreen(
     onLogout: () -> Unit = {},
     onNavigateToHoSoDetail: (String) -> Unit = {},
+    onNavigateToLicenseDetail: (String, String) -> Unit = { _, _ -> },
     onNavigateToCompanyInfo: () -> Unit = {},
     onNavigateToChangePassword: () -> Unit = {},
     onNavigateToParallelDemo: () -> Unit = {}
@@ -138,7 +139,7 @@ fun MainScreen(
                     onNavigateToCompanyInfo = onNavigateToCompanyInfo
                 )
                 1 -> ProfileScreen(onNavigateToDetail = onNavigateToHoSoDetail)
-                2 -> LicenseScreen()
+                2 -> LicenseScreen(onNavigateToDetail = onNavigateToLicenseDetail)
                 3 -> AccountScreen(
                     onLogout = onLogout,
                     onNavigateToCompanyInfo = onNavigateToCompanyInfo,

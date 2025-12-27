@@ -31,7 +31,7 @@ class AuthInterceptor(private val context: Context) : Interceptor {
 }
 
 object RetrofitInstance {
-//    private const val BASE_URL = "http://10.0.2.2:8080" // Địa chỉ localhost cho Android Emulator
+//    private const val BASE_URL = "http://10.0.2.2:8080/" // Địa chỉ localhost cho Android Emulator
     private const val BASE_URL = "https://beamingly-unevoked-kinley.ngrok-free.dev"
 
     private var appContext: Context? = null
@@ -70,4 +70,5 @@ object RetrofitInstance {
     val hoSoApi: HoSoApiService by lazy { retrofit.create(HoSoApiService::class.java) }
     val giayPhepApi: GiayPhepApiService by lazy { retrofit.create(GiayPhepApiService::class.java) }
     val doanhNghiepApi: DoanhNghiepApiService by lazy { retrofit.create(DoanhNghiepApiService::class.java) }
+    val demoApi: DemoApiService by lazy { retrofit.create(DemoApiService::class.java) }
 }

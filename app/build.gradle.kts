@@ -79,6 +79,9 @@ dependencies {
 
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
 
+    // Biometric Authentication (FaceID / Fingerprint)
+    implementation(libs.androidx.biometric)
+
     // Testing dependencies
     testImplementation(libs.junit)
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")

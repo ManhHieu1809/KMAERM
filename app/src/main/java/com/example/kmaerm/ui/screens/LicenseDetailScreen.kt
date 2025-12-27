@@ -1,5 +1,6 @@
 package com.example.kmaerm.ui.screens
 
+import android.app.Activity
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -11,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,11 +22,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.kmaerm.data.datastore.TokenDataStore
 import com.example.kmaerm.data.model.GiayPhep
 import com.example.kmaerm.ui.viewmodel.GiayPhepViewModel
+import com.example.kmaerm.utils.BiometricHelper
+import com.example.kmaerm.utils.SecureScreenManager
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,10 +46,16 @@ fun LicenseDetailScreen(
     viewModel: GiayPhepViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val tokenDataStore = remember { TokenDataStore(context) }
+    val activity = context as? Activity
+
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showVerifyDialog by remember { mutableStateOf(false) }
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
     var fileName by remember { mutableStateOf("") }
+    var biometricVerified by remember { mutableStateOf(false) }
+    var biometricAttempted by remember { mutableStateOf(false) }
 
     val selectedGiayPhep by viewModel.selectedGiayPhep.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -48,6 +63,45 @@ fun LicenseDetailScreen(
     val successMessage by viewModel.successMessage.collectAsState()
 
     val currentGiayPhep = selectedGiayPhep ?: giayPhep
+
+    DisposableEffect(Unit) {
+        SecureScreenManager.enableSecureMode(activity?.window)
+        onDispose {
+            SecureScreenManager.disableSecureMode(activity?.window)
+        }
+    }
+
+
+    LaunchedEffect(Unit) {
+        val biometricEnabled = tokenDataStore.biometricEnabled.first()
+
+        if (biometricEnabled && !biometricAttempted && context is FragmentActivity) {
+            biometricAttempted = true
+
+            BiometricHelper.showBiometricPrompt(
+                activity = context,
+                title = "Xác thực để xem giấy phép",
+                subtitle = "Dữ liệu nhạy cảm yêu cầu xác thực",
+                onSuccess = {
+                    scope.launch {
+                        tokenDataStore.saveLastBiometricAuth(System.currentTimeMillis())
+                        biometricVerified = true
+                    }
+                },
+                onError = { code, message ->
+                    // User canceled or clicked negative button - just go back
+                    Toast.makeText(context, "Xác thực bị hủy", Toast.LENGTH_SHORT).show()
+                    onNavigateBack()
+                },
+                onFailed = {
+                    // Allow retry
+                }
+            )
+        } else {
+            // Biometric not enabled, allow direct access
+            biometricVerified = true
+        }
+    }
 
     LaunchedEffect(giayPhep) {
         viewModel.setSelectedGiayPhep(giayPhep)
@@ -101,6 +155,60 @@ fun LicenseDetailScreen(
                 Toast.makeText(context, "Lỗi upload file: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    // Show loading or locked screen if biometric not verified
+    if (!biometricVerified) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Giấy phép", fontWeight = FontWeight.Bold) },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color(0xFF0056B3),
+                        titleContentColor = Color.White,
+                        navigationIconContentColor = Color.White
+                    )
+                )
+            }
+        ) { paddingValues ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = Color(0xFF6B7280)
+                    )
+                    Text(
+                        text = "Đang xác thực...",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF333333),
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "Vui lòng xác thực sinh trắc học\nđể xem chi tiết giấy phép",
+                        fontSize = 14.sp,
+                        color = Color(0xFF6B7280),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+        return
     }
 
     // Delete Dialog
@@ -166,7 +274,7 @@ fun LicenseDetailScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
                 },
                 actions = {
@@ -193,7 +301,6 @@ fun LicenseDetailScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // File Management Section
             Text(
                 text = "File Management",
                 fontSize = 18.sp,
@@ -272,7 +379,6 @@ fun LicenseDetailScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            // Blockchain Security Section
             Text(
                 text = "Blockchain Security",
                 fontSize = 18.sp,

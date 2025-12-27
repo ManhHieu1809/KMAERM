@@ -3,7 +3,13 @@ package com.example.kmaerm.data.api
 import com.example.kmaerm.data.model.AuthResponse
 import com.example.kmaerm.data.model.ChangePasswordRequest
 import com.example.kmaerm.data.model.ChangePasswordResponse
+import com.example.kmaerm.data.model.ForgotPasswordRequest
+import com.example.kmaerm.data.model.ForgotPasswordResponse
 import com.example.kmaerm.data.model.LoginRequest
+import com.example.kmaerm.data.model.ResetPasswordRequest
+import com.example.kmaerm.data.model.ResetPasswordResponse
+import com.example.kmaerm.data.model.VerifyOTPRequest
+import com.example.kmaerm.data.model.VerifyOTPResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
@@ -14,4 +20,15 @@ interface AuthApiService {
 
     @POST("/api/v1/auth/change-password")
     suspend fun changePassword(@Body request: ChangePasswordRequest): Response<ChangePasswordResponse>
+
+    // ============ Forgot Password & OTP Endpoints ============
+
+    @POST("/api/v1/auth/forgot-password")
+    suspend fun sendOTP(@Body request: ForgotPasswordRequest): Response<ForgotPasswordResponse>
+
+    @POST("/api/v1/auth/verify-otp")
+    suspend fun verifyOTP(@Body request: VerifyOTPRequest): Response<VerifyOTPResponse>
+
+    @POST("/api/v1/auth/reset-password")
+    suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<ResetPasswordResponse>
 }

@@ -3,8 +3,6 @@ package com.example.kmaerm.ui.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -38,7 +36,8 @@ data class License(
 
 @Composable
 fun LicenseScreen(
-    viewModel: GiayPhepViewModel = viewModel()
+    viewModel: GiayPhepViewModel = viewModel(),
+    onNavigateToDetail: (String, String) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
     val tokenDataStore = remember { TokenDataStore(context) }
@@ -80,7 +79,8 @@ fun LicenseScreen(
         else -> {
             GiayPhepScreen(
                 doanhNghiepId = doanhNghiepId!!,
-                viewModel = viewModel
+                viewModel = viewModel,
+                onNavigateToDetail = onNavigateToDetail
             )
         }
     }

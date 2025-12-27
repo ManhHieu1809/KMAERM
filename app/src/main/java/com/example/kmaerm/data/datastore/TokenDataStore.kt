@@ -5,6 +5,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -19,6 +21,11 @@ class TokenDataStore(private val context: Context) {
         private val EMAIL_KEY = stringPreferencesKey("user_email")
         private val FULL_NAME_KEY = stringPreferencesKey("user_full_name")
         private val DOANH_NGHIEP_ID_KEY = stringPreferencesKey("doanh_nghiep_id")
+
+        // Biometric & OTP tracking
+        val BIOMETRIC_ENABLED_KEY = booleanPreferencesKey("biometric_enabled")
+        val OTP_SENT_TIMESTAMP_KEY = longPreferencesKey("otp_sent_timestamp")
+        val LAST_BIOMETRIC_AUTH_KEY = longPreferencesKey("last_biometric_auth")
     }
 
     suspend fun saveToken(token: String) {
@@ -68,6 +75,37 @@ class TokenDataStore(private val context: Context) {
         preferences[DOANH_NGHIEP_ID_KEY]
     }
 
+    // Biometric settings
+    val biometricEnabled: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[BIOMETRIC_ENABLED_KEY] ?: false
+    }
+
+    val otpSentTimestamp: Flow<Long?> = context.dataStore.data.map { preferences ->
+        preferences[OTP_SENT_TIMESTAMP_KEY]
+    }
+
+    val lastBiometricAuth: Flow<Long?> = context.dataStore.data.map { preferences ->
+        preferences[LAST_BIOMETRIC_AUTH_KEY]
+    }
+
+    suspend fun setBiometricEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[BIOMETRIC_ENABLED_KEY] = enabled
+        }
+    }
+
+    suspend fun saveOTPSentTimestamp(timestamp: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[OTP_SENT_TIMESTAMP_KEY] = timestamp
+        }
+    }
+
+    suspend fun saveLastBiometricAuth(timestamp: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[LAST_BIOMETRIC_AUTH_KEY] = timestamp
+        }
+    }
+
     suspend fun clearToken() {
         context.dataStore.edit { preferences ->
             preferences.remove(TOKEN_KEY)
@@ -76,6 +114,8 @@ class TokenDataStore(private val context: Context) {
             preferences.remove(EMAIL_KEY)
             preferences.remove(FULL_NAME_KEY)
             preferences.remove(DOANH_NGHIEP_ID_KEY)
+            preferences.remove(OTP_SENT_TIMESTAMP_KEY)
+            preferences.remove(LAST_BIOMETRIC_AUTH_KEY)
         }
     }
 }

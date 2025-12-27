@@ -89,9 +89,16 @@ fun OfficerGiayPhepDetailScreen(
     }
 
     LaunchedEffect(successMessage) {
-        successMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+        successMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
             viewModel.clearSuccessMessage()
+
+            // Reload giay phep after successful operations to update UI
+            if (message.contains("Ký số", ignoreCase = true) ||
+                message.contains("Upload", ignoreCase = true) ||
+                message.contains("Xóa file", ignoreCase = true)) {
+                viewModel.reloadGiayPhep(giayPhep.id)
+            }
         }
     }
 
@@ -286,6 +293,44 @@ fun OfficerGiayPhepDetailScreen(
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold
                                 )
+                            }
+                        }
+
+                        // Digital Signature Button (only show if file exists)
+                        if (hasFile) {
+                            Button(
+                                onClick = {
+                                    viewModel.signLicense(giayPhep.id)
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF8B5CF6) // Purple color for signature
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(14.dp),
+                                enabled = !isLoading
+                            ) {
+                                if (isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Đang ký số...", fontWeight = FontWeight.Bold)
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Verified,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        "Ký số giấy phép",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
                     }

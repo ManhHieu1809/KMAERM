@@ -31,7 +31,6 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 _isLoading.value = true
                 _loginState.value = LoginState.Idle
 
-                // Gọi API đăng nhập thật
                 val response = RetrofitInstance.authApi.login(
                     LoginRequest(email, password)
                 )
@@ -41,14 +40,12 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                     val token = authResponse.data.access_token
                     val user = authResponse.data.user
 
-                    // Xác định role để điều hướng
                     val role = when (user.role_name) {
                         "DOANH_NGHIEP" -> "DoanhNghiep"
                         "CAN_BO" -> "CanBo"
-                        else -> "DoanhNghiep" // Default
+                        else -> "DoanhNghiep"
                     }
 
-                    // Lưu thông tin user vào DataStore
                     tokenDataStore.saveAuth(
                         token = token,
                         role = role,
@@ -60,16 +57,27 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
                     _loginState.value = LoginState.Success(role)
                 } else {
-                    val errorMessage = response.errorBody()?.string() ?: "Đăng nhập thất bại"
+                    val errorMessage = response.errorBody()?.string() ?: "Login failed"
                     _loginState.value = LoginState.Error(errorMessage)
                 }
             } catch (e: Exception) {
                 _loginState.value = LoginState.Error(
-                    e.message ?: "Lỗi kết nối. Vui lòng thử lại."
+                    e.message ?: "Connection error. Please try again."
                 )
             } finally {
                 _isLoading.value = false
             }
         }
     }
+
+    fun enableBiometric(enabled: Boolean) {
+        viewModelScope.launch {
+            tokenDataStore.setBiometricEnabled(enabled)
+        }
+    }
+
+    fun resetLoginState() {
+        _loginState.value = LoginState.Idle
+    }
 }
+

@@ -19,9 +19,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.kmaerm.data.datastore.TokenDataStore
 import com.example.kmaerm.data.model.GiayPhep
 import com.example.kmaerm.ui.viewmodel.GiayPhepViewModel
+import com.example.kmaerm.utils.BiometricHelper
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -29,12 +34,25 @@ import java.util.*
 @Composable
 fun GiayPhepScreen(
     doanhNghiepId: String,
-    viewModel: GiayPhepViewModel = viewModel()
+    viewModel: GiayPhepViewModel = viewModel(),
+    onNavigateToDetail: (String, String) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val tokenDataStore = remember { TokenDataStore(context) }
+
     val giayPhepList by viewModel.giayPhepList.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+
+    // Biometric state
+    var biometricEnabled by remember { mutableStateOf(false) }
+    var pendingViewFileGiayPhep by remember { mutableStateOf<GiayPhep?>(null) }
+
+    // Load biometric settings
+    LaunchedEffect(Unit) {
+        biometricEnabled = tokenDataStore.biometricEnabled.first()
+    }
 
     LaunchedEffect(doanhNghiepId) {
         viewModel.loadGiayPhepList(doanhNghiepId)
@@ -93,12 +111,49 @@ fun GiayPhepScreen(
                     GiayPhepCard(
                         giayPhep = giayPhep,
                         onClick = {
-                            // Handle card click
+                            // Navigate to detail screen
+                            onNavigateToDetail(giayPhep.id, doanhNghiepId)
                         },
                         onViewFile = {
                             // Xem file giấy phép qua API
                             if (!giayPhep.file_duong_dan.isNullOrBlank()) {
-                                viewModel.viewFile(context, giayPhep.id, giayPhep.so_giay_phep)
+                                // Kiểm tra biometric nếu đã bật
+                                if (biometricEnabled &&
+                                    BiometricHelper.canUseBiometric(context) == BiometricHelper.BiometricStatus.AVAILABLE) {
+                                    // Find FragmentActivity
+                                    var activity: FragmentActivity? = null
+                                    var ctx: android.content.Context = context
+                                    while (ctx is android.content.ContextWrapper) {
+                                        if (ctx is FragmentActivity) {
+                                            activity = ctx
+                                            break
+                                        }
+                                        ctx = ctx.baseContext
+                                    }
+
+                                    if (activity != null) {
+                                        BiometricHelper.showBiometricPrompt(
+                                            activity = activity,
+                                            title = "Xác thực để xem file",
+                                            subtitle = "Xác thực sinh trắc học để xem giấy phép",
+                                            onSuccess = {
+                                                viewModel.viewFile(context, giayPhep.id, giayPhep.so_giay_phep)
+                                            },
+                                            onError = { _, message ->
+                                                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                                            },
+                                            onFailed = {
+                                                Toast.makeText(context, "Xác thực thất bại", Toast.LENGTH_SHORT).show()
+                                            }
+                                        )
+                                    } else {
+                                        // Fallback nếu không tìm được activity
+                                        viewModel.viewFile(context, giayPhep.id, giayPhep.so_giay_phep)
+                                    }
+                                } else {
+                                    // Không bật biometric, xem trực tiếp
+                                    viewModel.viewFile(context, giayPhep.id, giayPhep.so_giay_phep)
+                                }
                             } else {
                                 Toast.makeText(context, "Giấy phép chưa có file đính kèm", Toast.LENGTH_SHORT).show()
                             }
